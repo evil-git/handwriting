@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Handwritten Assignment & Document Generator</title>
+  <!-- Google Fonts: Curated English & Hindi Handwriting Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amita:wght@400;700&family=Caveat:wght@400;700&family=Cedarville+Cursive&family=Covered+By+Your+Grace&family=Gochi+Hand&family=Gotu&family=Homemade+Apple&family=Indie+Flower&family=Just+Another+Hand&family=Kalam:wght@400;700&family=Nanum+Pen+Script&family=Nothing+You+Could+Do&family=Patrick+Hand&family=Reenie+Beanie&family=Rozha+One&family=Shadows+Into+Light&family=Tillana:wght@400;700&family=Yatra+One&display=swap" rel="stylesheet">
+  <!-- html2pdf.js for multi-page client-side PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    :root {
+      --bg-workspace: #0f172a;
+      --panel-bg: #1e293b;
+      --panel-border: #334155;
+      --accent-color: #3b82f6;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      
+      /* Dynamic Paper Properties */
+      --line-height: 34px;
+      --line-color: rgba(60, 110, 180, 0.28);
+      --margin-color: rgba(220, 38, 38, 0.45);
+      --paper-bg: #ffffff;
+      --ink-color: #1a365d;
+      --font-family: 'Kalam', cursive;
+      --font-size: 19px;
+      --letter-spacing: 0px;
+      --word-spacing: 3px;
+      --border-box-inset: 38px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-workspace);
+      color: var(--text-main);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Left Control Sidebar */
+    .sidebar {
+      width: 440px;
+      min-width: 440px;
+      background: var(--panel-bg);
+      border-right: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      z-index: 20;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+    }
+
+    .sidebar-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.6);
+    }
+
+    .sidebar-header h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid var(--accent-color);
+      color: #60a5fa;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px 80px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .section-title {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .val-indicator {
+      color: var(--accent-color);
+      font-weight: 600;
+    }
+
+    input, select, textarea {
+      background: #0f172a;
+      border: 1px solid var(--panel-border);
+      color: #f1f5f9;
+      padding: 9px 12px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      transition: all 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 140px;
+      line-height: 1.5;
+      font-family: inherit;
+    }
+
+    /* Template Grids */
+    .grid-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .opt-btn {
+      background: #0f172a;
+      border: 1px solid var(--panel-border);
+      color: #cbd5e1;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+
+    .opt-btn:hover {
+      border-color: #64748b;
+      background: #1e293b;
+    }
+
+    .opt-btn.active {
+      border-color: var(--accent-color);
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
+      font-weight: 600;
+    }
+
+    /* Color Swatches */
+    .color-swatches {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .swatch {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+
+    .swatch:hover {
+      transform: scale(1.12);
+    }
+
+    .swatch.active {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 2px var(--accent-color);
+    }
+
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .range-row input[type="range"] {
+      flex: 1;
+      padding: 0;
+      accent-color: var(--accent-color);
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      user-select: none;
+    }
+
+    .checkbox-row input {
+      accent-color: var(--accent-color);
+      cursor: pointer;
+    }
+
+    /* Action Bar (Download & Print) */
+    .sidebar-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 440px;
+      padding: 14px 20px;
+      background: #0f172a;
+      border-top: 1px solid var(--panel-border);
+      display: flex;
+      gap: 10px;
+      z-index: 30;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent-color);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-secondary {
+      background: #334155;
+      color: #f1f5f9;
+    }
+
+    .btn-secondary:hover {
+      background: #475569;
+    }
+
+    /* Main Preview Stage */
+    .preview-stage {
+      flex: 1;
+      background: #090d16;
+      overflow-y: auto;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 36px;
+      position: relative;
+    }
+
+    .stage-toolbar {
+      position: sticky;
+      top: 0;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--panel-border);
+      padding: 8px 16px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      z-index: 10;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+    }
+
+    /* The A4 Physical Sheets */
+    .a4-container {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+      align-items: center;
+    }
+
+    .sheet {
+      width: 794px; /* A4 width at 96 DPI */
+      height: 1123px; /* A4 height at 96 DPI */
+      background: var(--paper-bg);
+      position: relative;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3);
+      overflow: hidden;
+      box-sizing: border-box;
+      transform-origin: top center;
+      transition: transform 0.2s ease;
+    }
+
+    /* Paper Overlays & Textures */
+    .paper-texture {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.25;
+      background-image: radial-gradient(#000000 0.5px, transparent 0.5px);
+      background-size: 4px 4px;
+      z-index: 1;
+    }
+
+    .phone-shadow {
+      position: absolute;
+      top: -120px;
+      left: -140px;
+      width: 480px;
+      height: 480px;
+      background: radial-gradient(circle, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0) 70%);
+      pointer-events: none;
+      z-index: 4;
+      display: none;
+    }
+
+    /* Page Templates Execution */
+
+    /* 1. Framed Box Ruled (User Requested Style) */
+    .sheet.tpl-framed-box {
+      padding: var(--border-box-inset);
+    }
+
+    .sheet.tpl-framed-box .inner-box {
+      width: 100%;
+      height: 100%;
+      border: 1.5px solid #334155;
+      position: relative;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent calc(var(--line-height) - 1px),
+        var(--line-color) calc(var(--line-height) - 1px),
+        var(--line-color) var(--line-height)
+      );
+      background-size: 100% var(--line-height);
+    }
+
+    /* 2. Framed Box + Student Info Header */
+    .sheet.tpl-framed-header {
+      padding: var(--border-box-inset);
+    }
+
+    .sheet.tpl-framed-header .inner-box {
+      width: 100%;
+      height: 100%;
+      border: 1.5px solid #334155;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-box-banner {
+      height: 72px;
+      border-bottom: 1.5px solid #334155;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      font-size: 0.78rem;
+      color: #475569;
+      font-family: inherit;
+    }
+
+    .hb-item {
+      padding: 6px 12px;
+      border-right: 1px solid #94a3b8;
+      border-bottom: 1px solid #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hb-item:nth-child(2), .hb-item:nth-child(4) {
+      border-right: none;
+    }
+    .hb-item:nth-child(3), .hb-item:nth-child(4) {
+      border-bottom: none;
+    }
+
+    .sheet.tpl-framed-header .ruled-content-zone {
+      flex: 1;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent calc(var(--line-height) - 1px),
+        var(--line-color) calc(var(--line-height) - 1px),
+        var(--line-color) var(--line-height)
+      );
+      background-size: 100% var(--line-height);
+      position: relative;
+    }
+
+    /* 3. Hindi Two-Line (दो-लाइन सुलेख) Notebook */
+    .sheet.tpl-hindi-twoline {
+      padding: 50px 40px;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 14px,
+        rgba(59, 130, 246, 0.4) 14px,
+        rgba(59, 130, 246, 0.4) 15px,
+        transparent 15px,
+        transparent 31px,
+        rgba(30, 41, 59, 0.6) 31px,
+        rgba(30, 41, 59, 0.6) 32px
+      );
+      background-size: 100% 32px;
+    }
+
+    /* 4. Standard Ruled with Red Margin */
+    .sheet.tpl-notebook {
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent calc(var(--line-height) - 1px),
+        var(--line-color) calc(var(--line-height) - 1px),
+        var(--line-color) var(--line-height)
+      );
+      background-size: 100% var(--line-height);
+    }
+
+    .sheet.tpl-notebook::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 84px;
+      width: 2px;
+      background: var(--margin-color);
+      box-shadow: 3px 0 0 rgba(220, 38, 38, 0.45);
+      z-index: 2;
+    }
+
+    /* 5. Practical Lab Record */
+    .sheet.tpl-lab-record {
+      display: flex;
+    }
+
+    .sheet.tpl-lab-record .lab-left-grid {
+      width: 260px;
+      height: 100%;
+      border-right: 2px solid #334155;
+      background-size: 16px 16px;
+      background-image: linear-gradient(to right, rgba(148, 163, 184, 0.25) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(148, 163, 184, 0.25) 1px, transparent 1px);
+      padding: 12px;
+      font-size: 0.72rem;
+      color: #64748b;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .sheet.tpl-lab-record .lab-right-ruled {
+      flex: 1;
+      height: 100%;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent calc(var(--line-height) - 1px),
+        var(--line-color) calc(var(--line-height) - 1px),
+        var(--line-color) var(--line-height)
+      );
+      background-size: 100% var(--line-height);
+    }
+
+    /* 6. Legal Pad Yellow */
+    .sheet.tpl-legal-yellow {
+      background: #fef08a !important;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent calc(var(--line-height) - 1px),
+        rgba(59, 130, 246, 0.3) calc(var(--line-height) - 1px),
+        rgba(59, 130, 246, 0.3) var(--line-height)
+      );
+      background-size: 100% var(--line-height);
+    }
+
+    .sheet.tpl-legal-yellow::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 78px;
+      width: 2px;
+      background: rgba(220, 38, 38, 0.5);
+      box-shadow: 2px 0 0 rgba(220, 38, 38, 0.4);
+      z-index: 2;
+    }
+
+    /* 7. Unlined / Plain Blank */
+    .sheet.tpl-unlined {
+      background-image: none !important;
+    }
+
+    /* Content Area inside sheet */
+    .page-content-flow {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      padding: 50px 52px;
+      z-index: 3;
+      font-family: var(--font-family);
+      font-size: var(--font-size);
+      color: var(--ink-color);
+      line-height: var(--line-height);
+      letter-spacing: var(--letter-spacing);
+      word-spacing: var(--word-spacing);
+      overflow: hidden;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .sheet.tpl-framed-box .page-content-flow {
+      padding: calc(var(--border-box-inset) + 12px) calc(var(--border-box-inset) + 18px);
+    }
+
+    .sheet.tpl-framed-header .page-content-flow {
+      padding: calc(var(--border-box-inset) + 82px) calc(var(--border-box-inset) + 18px) calc(var(--border-box-inset) + 14px) calc(var(--border-box-inset) + 18px);
+    }
+
+    .sheet.tpl-notebook .page-content-flow {
+      padding-left: 98px;
+      padding-top: 50px;
+    }
+
+    .sheet.tpl-legal-yellow .page-content-flow {
+      padding-left: 92px;
+      padding-top: 50px;
+    }
+
+    .sheet.tpl-lab-record .page-content-flow {
+      left: 260px;
+      width: calc(100% - 260px);
+      padding: 44px 30px;
+    }
+
+    /* Student Marks & Formatting */
+    .mark-highlight {
+      background: rgba(254, 240, 138, 0.65);
+      border-radius: 3px;
+      padding: 0 4px;
+      display: inline-block;
+      transform: rotate(-0.4deg);
+    }
+
+    .mark-strike {
+      text-decoration: line-through;
+      text-decoration-color: var(--ink-color);
+      opacity: 0.8;
+    }
+
+    .mark-underline {
+      text-decoration: underline wavy rgba(30, 41, 59, 0.7);
+    }
+
+    /* Teacher Remarks Stamp */
+    .teacher-stamp {
+      position: absolute;
+      top: 24px;
+      right: 32px;
+      border: 2px solid #dc2626;
+      color: #dc2626;
+      padding: 4px 12px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: 6px;
+      transform: rotate(-6deg);
+      font-family: 'Caveat', cursive;
+      z-index: 6;
+      display: none;
+      pointer-events: none;
+    }
+
+    /* Notebook Top Header Stamp */
+    .notebook-stamp {
+      position: absolute;
+      top: 14px;
+      right: 28px;
+      border: 1px solid #94a3b8;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #64748b;
+      z-index: 5;
+      display: none;
+    }
+
+    /* Individual Character Wobble */
+    .char-wobble {
+      display: inline-block;
+      transform-origin: center bottom;
+      transition: transform 0.1s;
+    }
+
+    /* CamScanner Mode */
+    .sheet.camscanner-mode {
+      filter: contrast(1.15) brightness(1.03) saturate(1.1);
+    }
+
+    /* Print media styling */
+    @media print {
+      body {
+        background: white;
+      }
+      .sidebar, .stage-toolbar {
+        display: none !important;
+      }
+      .preview-stage {
+        padding: 0;
+        background: white;
+      }
+      .a4-container {
+        gap: 0;
+      }
+      .sheet {
+        box-shadow: none;
+        page-break-after: always;
+        break-after: page;
+        transform: none !important;
+        margin: 0;
+      }
+      @page {
+        size: A4;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Controls Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>
+        <span>✍️ HandScript Pro</span>
+        <span class="badge">A4 Engine</span>
+      </h1>
+      <span style="font-size: 0.75rem; color: #64748b;">v2.6</span>
+    </div>
+
+    <div class="sidebar-content">
+      
+      <!-- Preset Presets / Quick Load -->
+      <div class="form-group">
+        <div class="section-title">
+          <span>Quick Presets</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="opt-btn" onclick="loadSamplePreset('hindi')" style="flex: 1;">🇮🇳 हिंदी निबंध</button>
+          <button class="opt-btn" onclick="loadSamplePreset('cs')" style="flex: 1;">💻 CS Assignment</button>
+          <button class="opt-btn" onclick="loadSamplePreset('physics')" style="flex: 1;">🔬 Physics Lab</button>
+        </div>
+      </div>
+
+      <!-- Text Input Area -->
+      <div class="form-group">
+        <div class="section-title">
+          <span>Assignment Content</span>
+          <span style="font-size: 0.7rem; font-weight: normal; color: #64748b;">Supports ==highlight== and ~~mistake~~</span>
+        </div>
+        <textarea id="textContent" placeholder="Paste your assignment notes or text here...">Refraction Through a Glass Prism
+
+Aim of the Experiment:
+To determine the angle of minimum deviation for a given glass prism by plotting a graph between angle of incidence and angle of deviation.
+
+Apparatus Required:
+Drawing board, glass prism, drawing pins, graph paper, protractor, and a 30 cm scale.
+
+Formula & Theory:
+The refractive index (μ) of the material of the prism is given by:
+μ = sin((A + Dm)/2) / sin(A/2)
+
+Where:
+A = Angle of prism (60°)
+Dm = Angle of minimum deviation
+
+Procedure:
+1. Fix a white paper sheet on the drawing board using fixing pins.
+2. Place the triangular glass prism on the paper and trace its triangular outline ABC.
+3. Draw a normal line at point P on face AB and draw incident ray at 35°.
+4. Fix two pins vertically along this line and observe their reflections from face AC.
+5. Record the emergent ray and calculate angle of deviation.</textarea>
+      </div>
+
+      <!-- Page Template / Ruling Selector -->
+      <div class="form-group">
+        <div class="section-title">Page Ruling & Format</div>
+        <div class="grid-options">
+          <button class="opt-btn active" data-tpl="tpl-framed-box" onclick="setTemplate('tpl-framed-box', this)">
+            <span>🔲 Box Ruled (Your Img)</span>
+          </button>
+          <button class="opt-btn" data-tpl="tpl-framed-header" onclick="setTemplate('tpl-framed-header', this)">
+            <span>📋 Box + Header Block</span>
+          </button>
+          <button class="opt-btn" data-tpl="tpl-hindi-twoline" onclick="setTemplate('tpl-hindi-twoline', this)">
+            <span>📖 Hindi दो-लाइन सुलेख</span>
+          </button>
+          <button class="opt-btn" data-tpl="tpl-notebook" onclick="setTemplate('tpl-notebook', this)">
+            <span>📝 Classic Classmate</span>
+          </button>
+          <button class="opt-btn" data-tpl="tpl-lab-record" onclick="setTemplate('tpl-lab-record', this)">
+            <span>🔬 Practical Lab Sheet</span>
+          </button>
+          <button class="opt-btn" data-tpl="tpl-legal-yellow" onclick="setTemplate('tpl-legal-yellow', this)">
+            <span>📒 Steno Legal Yellow</span>
+          </button>
+          <button class="opt-btn" data-tpl="tpl-unlined" onclick="setTemplate('tpl-unlined', this)">
+            <span>📄 Plain Blank Unlined</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Font Selector (English & Hindi) -->
+      <div class="form-group">
+        <div class="section-title">
+          <span>Handwriting Script / Font</span>
+          <label style="font-size: 0.72rem; cursor: pointer; color: var(--accent-color);">
+            📁 Upload .TTF
+            <input type="file" id="fontUpload" accept=".ttf,.otf,.woff" style="display:none;" onchange="handleFontUpload(this)">
+          </label>
+        </div>
+        <select id="fontSelect" onchange="updateStyles()">
+          <optgroup label="🇮🇳 Hindi / Devanagari Handwriting">
+            <option value="'Kalam', cursive" selected>Kalam (कलम) - Natural Pen</option>
+            <option value="'Tillana', cursive">Tillana (तिल्लाना) - Student Script</option>
+            <option value="'Amita', cursive">Amita (अमिता) - Clean Cursive</option>
+            <option value="'Rozha One', serif">Rozha One (रोज़ा) - Traditional Nib</option>
+            <option value="'Yatra One', cursive">Yatra One (यात्रा) - Register Ink</option>
+            <option value="'Gotu', sans-serif">Gotu (गोतू) - Neat Exam Print</option>
+          </optgroup>
+          <optgroup label="🇬🇧 English Real Handwriting">
+            <option value="'Caveat', cursive">Caveat - Fast Freehand Ballpoint</option>
+            <option value="'Homemade Apple', cursive">Homemade Apple - Elegant Cursive</option>
+            <option value="'Patrick Hand', cursive">Patrick Hand - Neat Classroom</option>
+            <option value="'Indie Flower', cursive">Indie Flower - Relaxed Rounded</option>
+            <option value="'Reenie Beanie', cursive">Reenie Beanie - Messy Ballpoint</option>
+            <option value="'Just Another Hand', cursive">Just Another Hand - Tall Hurried</option>
+            <option value="'Shadows Into Light', cursive">Shadows Into Light - Modern Teen</option>
+            <option value="'Covered By Your Grace', cursive">Covered By Your Grace - Quick Exam</option>
+            <option value="'Gochi Hand', cursive">Gochi Hand - Smooth Gel Pen</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <!-- Pen Ink Profiles -->
+      <div class="form-group">
+        <div class="section-title">Ink Profile & Color</div>
+        <div class="color-swatches">
+          <div class="swatch active" style="background: #1a365d;" data-ink="#1a365d" title="Classmate Navy Gel" onclick="setInk('#1a365d', this)"></div>
+          <div class="swatch" style="background: #2563eb;" data-ink="#2563eb" title="Reynolds Ballpoint Blue" onclick="setInk('#2563eb', this)"></div>
+          <div class="swatch" style="background: #0f172a;" data-ink="#0f172a" title="Pilot Carbon Black" onclick="setInk('#0f172a', this)"></div>
+          <div class="swatch" style="background: #475569;" data-ink="#475569" title="2B Pencil Graphite" onclick="setInk('#475569', this)"></div>
+          <div class="swatch" style="background: #b91c1c;" data-ink="#b91c1c" title="Teacher Red Correction" onclick="setInk('#b91c1c', this)"></div>
+          <div class="swatch" style="background: #064e3b;" data-ink="#064e3b" title="Forest Green Pen" onclick="setInk('#064e3b', this)"></div>
+        </div>
+      </div>
+
+      <!-- Handwriting Physics / Wobble Controls -->
+      <div class="form-group">
+        <div class="section-title">Human Handwriting Physics</div>
+        
+        <div class="range-row">
+          <label>Baseline Wobble <span id="wobbleVal" class="val-indicator">1.5px</span></label>
+          <input type="range" id="wobbleSlider" min="0" max="4" step="0.5" value="1.5" oninput="renderContent()">
+        </div>
+
+        <div class="range-row" style="margin-top: 10px;">
+          <label>Letter Slant / Tilt <span id="tiltVal" class="val-indicator">2.0°</span></label>
+          <input type="range" id="tiltSlider" min="0" max="6" step="0.5" value="2.0" oninput="renderContent()">
+        </div>
+
+        <div class="range-row" style="margin-top: 10px;">
+          <label>Font Size <span id="fontSizeVal" class="val-indicator">19px</span></label>
+          <input type="range" id="fontSizeSlider" min="14" max="28" step="1" value="19" oninput="updateStyles()">
+        </div>
+
+        <div class="range-row" style="margin-top: 10px;">
+          <label>Line Spacing <span id="lineHeightVal" class="val-indicator">34px</span></label>
+          <input type="range" id="lineHeightSlider" min="26" max="46" step="1" value="34" oninput="updateStyles()">
+        </div>
+      </div>
+
+      <!-- Realism Overlay Toggles -->
+      <div class="form-group">
+        <div class="section-title">Realism & Stamp Addons</div>
+        
+        <label class="checkbox-row">
+          <input type="checkbox" id="chkTeacherStamp" onchange="toggleTeacherStamp(this.checked)">
+          <span>Teacher Checked Stamp (✓ Checked, 9/10)</span>
+        </label>
+
+        <label class="checkbox-row" style="margin-top: 6px;">
+          <input type="checkbox" id="chkNotebookStamp" checked onchange="toggleNotebookStamp(this.checked)">
+          <span>Date / Page No Register Stamp</span>
+        </label>
+
+        <label class="checkbox-row" style="margin-top: 6px;">
+          <input type="checkbox" id="chkPhoneShadow" onchange="togglePhoneShadow(this.checked)">
+          <span>Overhead Mobile Phone Camera Shadow</span>
+        </label>
+
+        <label class="checkbox-row" style="margin-top: 6px;">
+          <input type="checkbox" id="chkCamScanner" onchange="toggleCamScanner(this.checked)">
+          <span>CamScanner / Adobe Scan Mobile Filter</span>
+        </label>
+      </div>
+
+    </div>
+
+    <!-- Bottom Actions -->
+    <div class="sidebar-footer">
+      <button class="btn btn-secondary" onclick="window.print()">
+        🖨️ Direct Print
+      </button>
+      <button class="btn btn-primary" onclick="exportPDF()">
+        📥 Download PDF
+      </button>
+    </div>
+  </aside>
+
+  <!-- Canvas Stage / A4 Sheets -->
+  <main class="preview-stage">
+    <div class="stage-toolbar">
+      <span>📄 Dynamic A4 Canvas</span>
+      <span id="pageCountDisplay">Pages: 1</span>
+      <span style="display:flex; align-items:center; gap:8px;">
+        🔍 Zoom:
+        <input type="range" min="0.6" max="1.1" step="0.05" value="0.85" style="width: 80px;" oninput="setZoom(this.value)">
+      </span>
+    </div>
+
+    <div id="pagesContainer" class="a4-container">
+      <!-- Generated Sheets will populate here -->
+    </div>
+  </main>
+
+  <script>
+    // Global Application State
+    let currentTemplate = 'tpl-framed-box';
+    let currentInk = '#1a365d';
+    let zoomLevel = 0.85;
+
+    const sampleTexts = {
+      hindi: `पर्यावरण संरक्षण और हमारा दायित्व
+
+प्रस्तावना:
+प्रकृति और मानव का संबंध आदिकाल से अत्यंत घनिष्ठ रहा है। प्रकृति ने हमें जीवन जीने के लिए जल, वायु, वनस्पति और उपजाऊ भूमि जैसे अनमोल उपहार दिए हैं।
+
+पर्यावरण असंतुलन के मुख्य कारण:
+1. अंधाधुंध औद्योगिकीकरण और विषैले धुएं का उत्सर्जन।
+2. वनों की निरंतर कटाई (Deforestation) से वन्य जीवों का विनाश।
+3. प्लास्टिक कचरा और रासायनिक अपशिष्ट का जल स्रोतों में विसर्जन।
+
+हमारा संकल्प:
+प्रत्येक छात्र को अपने जन्मदिवस पर कम से कम एक पौधा अवश्य लगाना चाहिए। जब तक हम प्राकृतिक संसाधनों का संवर्धन नहीं करेंगे, भावी पीढ़ी सुरक्षित नहीं रह सकेगी।`,
+      cs: `Data Structures & Algorithms - Assignment 2
+
+Topic: Binary Search Tree (BST) Operations
+
+Definition:
+A Binary Search Tree is a node-based binary tree data structure with the following properties:
+1. The left subtree of a node contains only nodes with keys lesser than the node’s key.
+2. The right subtree contains only nodes with keys greater than the node’s key.
+3. Both left and right subtrees must also be binary search trees.
+
+Time Complexities:
+- Search Operation: Average O(log n), Worst Case O(n)
+- Insertion: Average O(log n), Worst Case O(n)
+- Deletion: Average O(log n), Worst Case O(n)
+
+Algorithm for In-Order Traversal:
+1. Traverse the left subtree recursively.
+2. Visit and process the root node.
+3. Traverse the right subtree recursively.`,
+      physics: `Refraction Through a Glass Prism
+
+Aim of the Experiment:
+To determine the angle of minimum deviation for a given glass prism by plotting a graph between angle of incidence and angle of deviation.
+
+Apparatus Required:
+Drawing board, glass prism, drawing pins, graph paper, protractor, and a 30 cm scale.
+
+Formula & Theory:
+The refractive index (μ) of the material of the prism is given by:
+μ = sin((A + Dm)/2) / sin(A/2)
+
+Where:
+A = Angle of prism (60°)
+Dm = Angle of minimum deviation
+
+Procedure:
+1. Fix a white paper sheet on the drawing board using fixing pins.
+2. Place the triangular glass prism on the paper and trace its triangular outline ABC.
+3. Draw a normal line at point P on face AB and draw incident ray at 35°.
+4. Fix two pins vertically along this line and observe their reflections from face AC.
+5. Record the emergent ray and calculate angle of deviation.`
+    };
+
+    function init() {
+      updateStyles();
+      renderContent();
+      setZoom(zoomLevel);
+    }
+
+    function updateStyles() {
+      const root = document.documentElement;
+      const font = document.getElementById('fontSelect').value;
+      const fontSize = document.getElementById('fontSizeSlider').value + 'px';
+      const lineHeight = document.getElementById('lineHeightSlider').value + 'px';
+      
+      document.getElementById('fontSizeVal').innerText = fontSize;
+      document.getElementById('lineHeightVal').innerText = lineHeight;
+
+      root.style.setProperty('--font-family', font);
+      root.style.setProperty('--font-size', fontSize);
+      root.style.setProperty('--line-height', lineHeight);
+      root.style.setProperty('--ink-color', currentInk);
+
+      renderContent();
+    }
+
+    function setTemplate(tplClass, btn) {
+      currentTemplate = tplClass;
+      document.querySelectorAll('.grid-options .opt-btn').forEach(b => b.classList.remove('active'));
+      if(btn) btn.classList.add('active');
+      renderContent();
+    }
+
+    function setInk(color, swatch) {
+      currentInk = color;
+      document.querySelectorAll('.color-swatches .swatch').forEach(s => s.classList.remove('active'));
+      if(swatch) swatch.classList.add('active');
+      document.documentElement.style.setProperty('--ink-color', color);
+    }
+
+    function loadSamplePreset(type) {
+      if(type === 'hindi') {
+        document.getElementById('fontSelect').value = "'Kalam', cursive";
+        document.getElementById('textContent').value = sampleTexts.hindi;
+        setTemplate('tpl-hindi-twoline', document.querySelector('[data-tpl="tpl-hindi-twoline"]'));
+      } else if(type === 'cs') {
+        document.getElementById('fontSelect').value = "'Patrick Hand', cursive";
+        document.getElementById('textContent').value = sampleTexts.cs;
+        setTemplate('tpl-framed-box', document.querySelector('[data-tpl="tpl-framed-box"]'));
+      } else if(type === 'physics') {
+        document.getElementById('fontSelect').value = "'Caveat', cursive";
+        document.getElementById('textContent').value = sampleTexts.physics;
+        setTemplate('tpl-lab-record', document.querySelector('[data-tpl="tpl-lab-record"]'));
+      }
+      updateStyles();
+    }
+
+    function handleFontUpload(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const fontName = 'CustomUserFont_' + Date.now();
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const fontFace = new FontFace(fontName, e.target.result);
+        fontFace.load().then(loadedFace => {
+          document.fonts.add(loadedFace);
+          const select = document.getElementById('fontSelect');
+          const opt = document.createElement('option');
+          opt.value = `'${fontName}', cursive`;
+          opt.innerText = `📁 ${file.name.replace(/\.[^/.]+$/, "")}`;
+          opt.selected = true;
+          select.prepend(opt);
+          updateStyles();
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function setZoom(val) {
+      zoomLevel = val;
+      const sheets = document.querySelectorAll('.sheet');
+      sheets.forEach(sheet => {
+        sheet.style.transform = `scale(${val})`;
+        sheet.style.marginBottom = `${(1123 * (val - 1))}px`;
+      });
+    }
+
+    // Handwriting character humanizer (Applies subtle baseline jitter, rotation and pressure)
+    function humanizeText(text) {
+      const maxWobble = parseFloat(document.getElementById('wobbleSlider').value) || 0;
+      const maxTilt = parseFloat(document.getElementById('tiltSlider').value) || 0;
+      document.getElementById('wobbleVal').innerText = maxWobble + 'px';
+      document.getElementById('tiltVal').innerText = maxTilt + '°';
+
+      // Check if text is Devanagari (Hindi)
+      const isDevanagari = /[ऀ-ॿ]/.test(text);
+
+      let formatted = text
+        .replace(/==(.*?)==/g, '<span class="mark-highlight">$1</span>')
+        .replace(/~~(.*?)~~/g, '<span class="mark-strike">$1</span>')
+        .replace(/__(.*?)__/g, '<span class="mark-underline">$1</span>');
+
+      if (maxWobble === 0 && maxTilt === 0) return formatted;
+
+      if (isDevanagari) {
+        // Devanagari word-level jitter to maintain shirorekha continuity
+        return formatted.split(/(\s+)/).map(token => {
+          if (/^\s+$/.test(token) || token.startsWith('<')) return token;
+          const wobbleY = (Math.random() * (maxWobble * 2) - maxWobble).toFixed(2);
+          const rot = (Math.random() * (maxTilt * 1.5) - (maxTilt * 0.75)).toFixed(2);
+          return `<span class="char-wobble" style="transform: translateY(${wobbleY}px) rotate(${rot}deg);">${token}</span>`;
+        }).join('');
+      }
+
+      // Latin / English character-level jitter
+      let result = '';
+      let inTag = false;
+      for (let i = 0; i < formatted.length; i++) {
+        const char = formatted[i];
+        if (char === '<') { inTag = true; result += char; continue; }
+        if (char === '>') { inTag = false; result += char; continue; }
+        if (inTag || char === ' ' || char === '\n') {
+          result += char;
+          continue;
+        }
+        const wobbleY = (Math.random() * (maxWobble * 2) - maxWobble).toFixed(2);
+        const rot = (Math.random() * (maxTilt * 2) - maxTilt).toFixed(2);
+        const opacity = (0.88 + Math.random() * 0.12).toFixed(2);
+        result += `<span class="char-wobble" style="transform: translateY(${wobbleY}px) rotate(${rot}deg); opacity: ${opacity};">${char}</span>`;
+      }
+      return result;
+    }
+
+    // Multi-page layout splitter
+    function renderContent() {
+      const rawText = document.getElementById('textContent').value;
+      const container = document.getElementById('pagesContainer');
+      container.innerHTML = '';
+
+      // Create initial page
+      let pageNum = 1;
+      let currentPage = createPageElement(pageNum);
+      container.appendChild(currentPage);
+
+      let contentFlow = currentPage.querySelector('.page-content-flow');
+      const paragraphs = rawText.split('\n');
+      let currentBuffer = '';
+
+      paragraphs.forEach((p, idx) => {
+        const testText = currentBuffer + (currentBuffer ? '\n' : '') + p;
+        contentFlow.innerHTML = humanizeText(testText);
+
+        // Check if paragraph overflows sheet content height
+        if (contentFlow.scrollHeight > contentFlow.clientHeight && currentBuffer !== '') {
+          // Commit previous buffer to current page
+          contentFlow.innerHTML = humanizeText(currentBuffer);
+
+          // Spawn next page
+          pageNum++;
+          currentPage = createPageElement(pageNum);
+          container.appendChild(currentPage);
+          const nextContentFlow = currentPage.querySelector('.page-content-flow');
+          contentFlow = nextContentFlow; // keep writing into the NEW page
+          currentBuffer = p;
+          nextContentFlow.innerHTML = humanizeText(currentBuffer);
+        } else {
+          currentBuffer = testText;
+        }
+      });
+
+      document.getElementById('pageCountDisplay').innerText = `Pages: ${pageNum}`;
+      setZoom(zoomLevel);
+    }
+
+    function createPageElement(pageNum) {
+      const sheet = document.createElement('div');
+      sheet.className = `sheet ${currentTemplate}`;
+      if (document.getElementById('chkCamScanner').checked) {
+        sheet.classList.add('camscanner-mode');
+      }
+
+      // Add realism overlays
+      sheet.innerHTML = `
+        <div class="paper-texture"></div>
+        <div class="phone-shadow" style="${document.getElementById('chkPhoneShadow').checked ? 'display:block;' : ''}"></div>
+        <div class="teacher-stamp" style="${document.getElementById('chkTeacherStamp').checked ? 'display:block;' : ''}">
+          ✓ Checked<br><span style="font-size:0.75rem;">Grade: 9/10 (Good)</span>
+        </div>
+        <div class="notebook-stamp" style="${document.getElementById('chkNotebookStamp').checked ? 'display:block;' : ''}">
+          DATE: ____/____/20__<br>PAGE NO: 0${pageNum}
+        </div>
+      `;
+
+      // Specific template layouts
+      if (currentTemplate === 'tpl-framed-box') {
+        const innerBox = document.createElement('div');
+        innerBox.className = 'inner-box';
+        sheet.appendChild(innerBox);
+      } else if (currentTemplate === 'tpl-framed-header') {
+        const innerBox = document.createElement('div');
+        innerBox.className = 'inner-box';
+        innerBox.innerHTML = `
+          <div class="header-box-banner">
+            <div class="hb-item"><strong>NAME:</strong> _____________</div>
+            <div class="hb-item"><strong>ROLL NO:</strong> _________</div>
+            <div class="hb-item"><strong>SUBJECT:</strong> __________</div>
+            <div class="hb-item"><strong>PAGE:</strong> 0${pageNum}</div>
+          </div>
+          <div class="ruled-content-zone"></div>
+        `;
+        sheet.appendChild(innerBox);
+      } else if (currentTemplate === 'tpl-lab-record') {
+        sheet.innerHTML += `
+          <div class="lab-left-grid">Observation / Diagram Area</div>
+          <div class="lab-right-ruled"></div>
+        `;
+      }
+
+      const flow = document.createElement('div');
+      flow.className = 'page-content-flow';
+      sheet.appendChild(flow);
+      return sheet;
+    }
+
+    // Addon toggles
+    function toggleTeacherStamp(show) {
+      document.querySelectorAll('.teacher-stamp').forEach(el => el.style.display = show ? 'block' : 'none');
+    }
+
+    function toggleNotebookStamp(show) {
+      document.querySelectorAll('.notebook-stamp').forEach(el => el.style.display = show ? 'block' : 'none');
+    }
+
+    function togglePhoneShadow(show) {
+      document.querySelectorAll('.phone-shadow').forEach(el => el.style.display = show ? 'block' : 'none');
+    }
+
+    function toggleCamScanner(enable) {
+      document.querySelectorAll('.sheet').forEach(s => s.classList.toggle('camscanner-mode', enable));
+    }
+
+    // Direct Client-Side PDF Generation
+    function exportPDF() {
+      const container = document.getElementById('pagesContainer');
+      const opt = {
+        margin: 0,
+        filename: 'Handwritten_Assignment.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      // Reset zoom temporarily to 1.0 for true crisp render
+      const origZoom = zoomLevel;
+      setZoom(1.0);
+
+      html2pdf().set(opt).from(container).save().then(() => {
+        setZoom(origZoom);
+      });
+    }
+
+    // Listener for text editing
+    document.getElementById('textContent').addEventListener('input', renderContent);
+
+    // Initial Load
+    window.onload = init;
+  </script>
+</body>
+</html>
